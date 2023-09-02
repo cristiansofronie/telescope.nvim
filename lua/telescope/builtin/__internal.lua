@@ -1390,6 +1390,37 @@ internal.jumplist = function(opts)
     :find()
 end
 
+internal.changelist = function(opts)
+  opts = opts or {}
+  local changelist = vim.fn.getchangelist()[1]
+
+  -- reverse the list
+  local sorted_changelist = {}
+  for i = #changelist, 1, -1 do
+    if vim.api.nvim_buf_is_valid(changelist[i].bufnr) then
+      changelist[i].text = vim.api.nvim_buf_get_lines(
+        changelist[i].bufnr,
+        changelist[i].lnum - 1,
+        changelist[i].lnum,
+        false
+      )[1] or ""
+      table.insert(sorted_changelist, changelist[i])
+    end
+  end
+
+  pickers
+    .new(opts, {
+      prompt_title = "Changelist",
+      finder = finders.new_table {
+        results = sorted_changelist,
+        entry_maker = make_entry.gen_from_quickfix(opts),
+      },
+      previewer = conf.qflist_previewer(opts),
+      sorter = conf.generic_sorter(opts),
+    })
+    :find()
+end
+
 local function apply_checks(mod)
   for k, v in pairs(mod) do
     mod[k] = function(opts)
